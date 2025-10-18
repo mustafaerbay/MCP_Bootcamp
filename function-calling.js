@@ -10,10 +10,16 @@
  */
 
 const OpenAI = require("openai");
+const axios = require('axios');
 require('dotenv').config();
 
 if (!process.env.OPENAI_API_KEY) {
   console.error("Missing OPENAI_API_KEY environment variable.");
+  process.exit(1);
+}
+
+if (!process.env.WEATHER_API_KEY) {
+  console.error("Missing WEATHER_API_KEY environment variable.");
   process.exit(1);
 }
 
@@ -42,14 +48,66 @@ const tools = [
   },
 ];
 
-function getWeather({ location, unit = "celsius" }) {
-  return {
-    location,
-    unit,
-    outlook: "sunny with light clouds",
-    temperature: unit === "celsius" ? 24 : 75,
-    humidity: 0.45,
-  };
+async function getWeather({ location, unit = "celsius" }) {
+  try {
+    console.log(`🌤️ Fetching real weather data for: ${location}`);
+    
+    const response = await axios.get('http://api.weatherapi.com/v1/current.json', {
+      params: {
+        key: process.env.WEATHER_API_KEY,
+        q: location,
+        aqi: 'no'
+      }
+    });
+
+    const data = response.data;
+    const current = data.current;
+    const locationInfo = data.location;
+
+    console.log('📊 WeatherAPI response received:', {
+      location: locationInfo.name,
+      country: locationInfo.country,
+      temperature: current.temp_c,
+      condition: current.condition.text
+    });
+
+    // Convert temperature based on unit preference
+    const temperature = unit === "celsius" ? current.temp_c : current.temp_f;
+    
+    return {
+      location: `${locationInfo.name}, ${locationInfo.country}`,
+      unit,
+      outlook: current.condition.text,
+      temperature: Math.round(temperature),
+      humidity: current.humidity,
+      windSpeed: unit === "celsius" ? current.wind_kph : current.wind_mph,
+      windUnit: unit === "celsius" ? "km/h" : "mph",
+      pressure: current.pressure_mb,
+      feelsLike: unit === "celsius" ? Math.round(current.feelslike_c) : Math.round(current.feelslike_f),
+      visibility: current.vis_km,
+      uvIndex: current.uv,
+      lastUpdated: current.last_updated
+    };
+  } catch (error) {
+    console.error('❌ Error fetching weather data:', error.message);
+    
+    // Fallback to mock data if API fails
+    return {
+      location,
+      unit,
+      outlook: "Unable to fetch weather data",
+      temperature: unit === "celsius" ? 20 : 68,
+      humidity: 50,
+      windSpeed: 10,
+      windUnit: unit === "celsius" ? "km/h" : "mph",
+      pressure: 1013,
+      feelsLike: unit === "celsius" ? 20 : 68,
+      visibility: 10,
+      uvIndex: 3,
+      lastUpdated: new Date().toISOString(),
+      error: "Weather service temporarily unavailable"
+    };
+  }
 }
 
 async function run() {
@@ -98,12 +156,25 @@ async function run() {
     throw error;
   }
 
-  const toolResult = getWeather(args);
+  const toolResult = await getWeather(args);
   console.log("Tool result:", toolResult);
 
-  // Create a natural language response based on the function result
+  // Create a detailed natural language response based on the function result
   const weatherInfo = toolResult;
-  const finalResponse = `The weather in ${weatherInfo.location} is ${weatherInfo.outlook} with a temperature of ${weatherInfo.temperature}°${weatherInfo.unit === 'celsius' ? 'C' : 'F'} and humidity at ${Math.round(weatherInfo.humidity * 100)}%.`;
+  let finalResponse = `🌤️ **Current Weather in ${weatherInfo.location}**\n\n`;
+  finalResponse += `**Condition:** ${weatherInfo.outlook}\n`;
+  finalResponse += `**Temperature:** ${weatherInfo.temperature}°${weatherInfo.unit === 'celsius' ? 'C' : 'F'}\n`;
+  finalResponse += `**Feels Like:** ${weatherInfo.feelsLike}°${weatherInfo.unit === 'celsius' ? 'C' : 'F'}\n`;
+  finalResponse += `**Humidity:** ${weatherInfo.humidity}%\n`;
+  finalResponse += `**Wind:** ${weatherInfo.windSpeed} ${weatherInfo.windUnit}\n`;
+  finalResponse += `**Pressure:** ${weatherInfo.pressure} mb\n`;
+  finalResponse += `**Visibility:** ${weatherInfo.visibility} km\n`;
+  finalResponse += `**UV Index:** ${weatherInfo.uvIndex}\n`;
+  finalResponse += `**Last Updated:** ${weatherInfo.lastUpdated}`;
+  
+  if (weatherInfo.error) {
+    finalResponse += `\n\n⚠️ **Note:** ${weatherInfo.error}`;
+  }
   
   console.log("Final response:", finalResponse);
 }

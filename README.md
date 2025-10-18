@@ -17,9 +17,14 @@ A modern web interface for OpenAI function calling, specifically designed for we
    npm install
    ```
 
-2. **Set up your OpenAI API key:**
+2. **Set up your API keys:**
    ```bash
-   export OPENAI_API_KEY=sk-your-api-key-here
+   # Copy the example environment file
+   cp env.example .env
+   
+   # Edit .env with your actual API keys
+   OPENAI_API_KEY=sk-your-openai-api-key-here
+   WEATHER_API_KEY=your-weatherapi-key-here
    ```
 
 3. **Start the web server:**
@@ -71,12 +76,29 @@ npm start
 ## Environment Variables
 
 - `OPENAI_API_KEY` - Your OpenAI API key (required)
+- `WEATHER_API_KEY` - Your WeatherAPI.com API key (required)
 - `PORT` - Server port (default: 3000)
+
+## Getting API Keys
+
+### OpenAI API Key
+1. Go to [OpenAI Platform](https://platform.openai.com/)
+2. Sign up or log in
+3. Go to API Keys section
+4. Create a new API key
+
+### WeatherAPI.com Key
+1. Go to [WeatherAPI.com](https://www.weatherapi.com/)
+2. Sign up for a free account
+3. Get your API key from the dashboard
+4. Free tier includes 1 million calls per month
 
 ## Dependencies
 
 - **express**: Web server framework
 - **openai**: OpenAI API client
+- **axios**: HTTP client for WeatherAPI.com
+- **dotenv**: Environment variable management
 - **Modern CSS**: No additional CSS frameworks needed
 
 ## Example Queries
