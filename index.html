@@ -17,14 +17,32 @@
             <div class="chat-messages" id="chatMessages">
                 <div class="message assistant">
                     <div class="message-content">
-                        <strong>AI Assistant:</strong> Hello! I can help you check the weather for any location. Try asking me something like "What's the weather like in Istanbul, Turkey?" or "How's the weather in New York?"
+                        <strong>AI Assistant:</strong> Hello! I can help you check the weather for any location. Select a tool, enter the required locations, and I'll fetch the latest data from the MCP weather server.
                     </div>
                 </div>
             </div>
 
             <div class="input-container">
+                <div class="tool-controls">
+                    <label for="toolSelect">
+                        <span>Tool</span>
+                        <select id="toolSelect">
+                            <option value="" disabled selected>Loading tools...</option>
+                        </select>
+                    </label>
+                    <label for="unitSelect">
+                        <span>Unit</span>
+                        <select id="unitSelect">
+                            <option value="celsius">Celsius</option>
+                            <option value="fahrenheit">Fahrenheit</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="secondary-input hidden" id="location2Wrapper">
+                    <input type="text" id="location2Input" placeholder="Second location" autocomplete="off">
+                </div>
                 <div class="input-wrapper">
-                    <input type="text" id="userInput" placeholder="Ask about the weather..." autocomplete="off">
+                    <input type="text" id="userInput" placeholder="Enter a location (e.g. Istanbul, Turkey)" autocomplete="off">
                     <button id="sendButton" class="send-button">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -38,10 +56,10 @@
         <div class="examples">
             <h3>Try these examples:</h3>
             <div class="example-buttons">
-                <button class="example-btn" data-query="What's the weather like in Istanbul, Turkey?">Istanbul, Turkey</button>
-                <button class="example-btn" data-query="How's the weather in New York City?">New York City</button>
-                <button class="example-btn" data-query="What's the temperature in Tokyo, Japan?">Tokyo, Japan</button>
-                <button class="example-btn" data-query="Weather forecast for London, UK">London, UK</button>
+                <button class="example-btn" data-tool="get_current_weather" data-location="Istanbul, Turkey" data-unit="celsius">Current in Istanbul</button>
+                <button class="example-btn" data-tool="get_current_weather" data-location="New York City, USA" data-unit="fahrenheit">Current in NYC (℉)</button>
+                <button class="example-btn" data-tool="get_weather_summary" data-location="Tokyo, Japan" data-unit="celsius">Summary for Tokyo</button>
+                <button class="example-btn" data-tool="compare_weather" data-location="London, UK" data-location2="Paris, France" data-unit="celsius">Compare London vs Paris</button>
             </div>
         </div>
     </div>

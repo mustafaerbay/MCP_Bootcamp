@@ -1,18 +1,24 @@
 class WeatherChat {
     constructor() {
+        this.mcpBaseUrl = window.MCP_BASE_URL || 'http://localhost:3001';
         this.chatMessages = document.getElementById('chatMessages');
         this.userInput = document.getElementById('userInput');
+        this.location2Wrapper = document.getElementById('location2Wrapper');
+        this.location2Input = document.getElementById('location2Input');
         this.sendButton = document.getElementById('sendButton');
         this.exampleButtons = document.querySelectorAll('.example-btn');
-        
+        this.toolSelect = document.getElementById('toolSelect');
+        this.unitSelect = document.getElementById('unitSelect');
+
+        this.availableTools = new Map();
+
         this.initializeEventListeners();
+        this.loadTools();
     }
 
     initializeEventListeners() {
-        // Send button click
         this.sendButton.addEventListener('click', () => this.sendMessage());
-        
-        // Enter key press
+
         this.userInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -20,113 +26,277 @@ class WeatherChat {
             }
         });
 
-        // Example buttons
-        this.exampleButtons.forEach(btn => {
+        this.toolSelect.addEventListener('change', () => this.handleToolChange());
+
+        this.exampleButtons.forEach((btn) => {
             btn.addEventListener('click', () => {
-                const query = btn.getAttribute('data-query');
-                this.userInput.value = query;
+                if (btn.dataset.tool) {
+                    this.toolSelect.value = btn.dataset.tool;
+                    this.handleToolChange();
+                }
+
+                if (btn.dataset.unit) {
+                    this.unitSelect.value = btn.dataset.unit;
+                }
+
+                this.userInput.value = btn.dataset.location || '';
+                this.location2Input.value = btn.dataset.location2 || '';
+
+                if (btn.dataset.tool === 'compare_weather') {
+                    this.location2Wrapper.classList.remove('hidden');
+                }
+
                 this.sendMessage();
             });
         });
 
-        // Auto-focus input
         this.userInput.focus();
     }
 
-    async sendMessage() {
-        const message = this.userInput.value.trim();
-        if (!message) return;
-
-        // Add user message to chat
-        this.addMessage('user', message);
-        this.userInput.value = '';
-        this.setLoading(true);
+    async loadTools() {
+        const fallbackTools = [
+            {
+                name: 'get_current_weather',
+                description: 'Get current weather conditions for a specific location',
+                inputSchema: {
+                    properties: {
+                        location: { description: 'City and country (e.g. Istanbul, Turkey)' },
+                        unit: { enum: ['celsius', 'fahrenheit'] }
+                    }
+                }
+            },
+            {
+                name: 'get_weather_summary',
+                description: 'Get a detailed weather summary for a location',
+                inputSchema: {
+                    properties: {
+                        location: { description: 'City and country' },
+                        unit: { enum: ['celsius', 'fahrenheit'] }
+                    }
+                }
+            },
+            {
+                name: 'compare_weather',
+                description: 'Compare weather between two locations',
+                inputSchema: {
+                    properties: {
+                        location1: { description: 'First location' },
+                        location2: { description: 'Second location' },
+                        unit: { enum: ['celsius', 'fahrenheit'] }
+                    }
+                }
+            }
+        ];
 
         try {
-            // Show typing indicator
-            this.showTypingIndicator();
+            const response = await fetch(`${this.mcpBaseUrl}/tools`);
+            const raw = await response.text();
+            const data = raw ? JSON.parse(raw) : { tools: [] };
 
-            // Send request to server
-            const response = await fetch('/api/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ message })
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            if (Array.isArray(data.tools) && data.tools.length > 0) {
+                this.populateToolsSelect(data.tools);
+                return;
             }
 
-            const data = await response.json();
-            
-            // Remove typing indicator
+            console.warn('MCP server returned no tools, using fallback.');
+        } catch (error) {
+            console.warn('Unable to load tools from MCP server, using fallback set.', error);
+        }
+
+        this.populateToolsSelect(fallbackTools);
+    }
+
+    populateToolsSelect(tools) {
+        this.availableTools.clear();
+        this.toolSelect.innerHTML = '';
+
+        tools.forEach((tool, index) => {
+            this.availableTools.set(tool.name, tool);
+            const option = document.createElement('option');
+            option.value = tool.name;
+            const niceName = this.prettifyToolName(tool.name);
+            option.textContent = niceName;
+            option.title = tool.description || niceName;
+            if (index === 0) {
+                option.selected = true;
+            }
+            this.toolSelect.appendChild(option);
+        });
+
+        this.handleToolChange();
+    }
+
+    prettifyToolName(name) {
+        return name
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, (char) => char.toUpperCase());
+    }
+
+    handleToolChange() {
+        const toolName = this.toolSelect.value;
+
+        if (toolName === 'compare_weather') {
+            this.location2Wrapper.classList.remove('hidden');
+        } else {
+            this.location2Wrapper.classList.add('hidden');
+            this.location2Input.value = '';
+        }
+
+        this.updatePlaceholders(toolName);
+    }
+
+    updatePlaceholders(toolName) {
+        switch (toolName) {
+            case 'get_weather_summary':
+                this.userInput.placeholder = 'Enter a location for a detailed summary (e.g. Tokyo, Japan)';
+                break;
+            case 'compare_weather':
+                this.userInput.placeholder = 'First location (e.g. London, UK)';
+                if (!this.location2Input.value) {
+                    this.location2Input.placeholder = 'Second location (e.g. Paris, France)';
+                }
+                break;
+            default:
+                this.userInput.placeholder = 'Enter a location (e.g. Istanbul, Turkey)';
+        }
+    }
+
+    async sendMessage() {
+        const toolName = this.toolSelect.value;
+        const unit = this.unitSelect.value;
+
+        if (!toolName) {
+            this.addMessage('assistant', 'Please choose a tool before making a request.');
+            return;
+        }
+
+        const primaryLocation = this.userInput.value.trim();
+        const secondaryLocation = this.location2Input.value.trim();
+
+        if (!primaryLocation) {
+            this.addMessage('assistant', 'Please provide at least one location.');
+            return;
+        }
+
+        if (toolName === 'compare_weather' && !secondaryLocation) {
+            this.addMessage('assistant', 'Please enter a second location when comparing weather.');
+            return;
+        }
+
+        const args = this.buildArguments(toolName, unit, primaryLocation, secondaryLocation);
+        const userSummary = this.buildUserSummary(toolName, args);
+
+        this.addMessage('user', userSummary);
+        this.addMessage('function-call', `🔧 Tool Call: ${toolName}\nArguments: ${JSON.stringify(args, null, 2)}`);
+
+        this.setLoading(true);
+        this.showTypingIndicator();
+
+        try {
+            const response = await fetch(`${this.mcpBaseUrl}/call-tool`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: toolName, arguments: args })
+            });
+
+            const raw = await response.text();
+            let data = raw ? JSON.parse(raw) : null;
+
             this.hideTypingIndicator();
 
-            // Display the conversation flow
-            this.displayConversationFlow(data);
+            if (!response.ok || data?.isError) {
+                const errorMessage =
+                    data?.content?.[0]?.text ||
+                    data?.error ||
+                    `MCP server returned HTTP ${response.status}`;
+                throw new Error(errorMessage);
+            }
 
+            const assistantText = this.extractTextContent(data);
+            this.addMessage('assistant', assistantText);
         } catch (error) {
             this.hideTypingIndicator();
             this.addMessage('assistant', `Sorry, I encountered an error: ${error.message}`);
-            console.error('Error:', error);
+            console.error('Error calling MCP server:', error);
         } finally {
             this.setLoading(false);
         }
     }
 
-    displayConversationFlow(data) {
-        // Show the AI's initial response (if any)
-        if (data.firstResponse) {
-            this.addMessage('assistant', data.firstResponse);
+    buildArguments(toolName, unit, primaryLocation, secondaryLocation) {
+        if (toolName === 'compare_weather') {
+            return {
+                location1: primaryLocation,
+                location2: secondaryLocation,
+                unit
+            };
         }
 
-        // Show function call details
-        if (data.functionCall) {
-            const functionDetails = `🔧 Function Call: ${data.functionCall.name}
-Arguments: ${JSON.stringify(JSON.parse(data.functionCall.arguments), null, 2)}`;
-            this.addMessage('function-call', functionDetails);
+        return {
+            location: primaryLocation,
+            unit
+        };
+    }
+
+    buildUserSummary(toolName, args) {
+        switch (toolName) {
+            case 'get_weather_summary':
+                return `Show me a detailed weather summary for ${args.location} (${args.unit}).`;
+            case 'compare_weather':
+                return `Compare the weather between ${args.location1} and ${args.location2} (${args.unit}).`;
+            default:
+                return `Check the current weather in ${args.location} (${args.unit}).`;
+        }
+    }
+
+    extractTextContent(data) {
+        if (!data) {
+            return 'Received an empty response from the MCP server.';
         }
 
-        // Show function result
-        if (data.functionResult) {
-            const resultDetails = `📊 Function Result:
-${JSON.stringify(data.functionResult, null, 2)}`;
-            this.addMessage('function-result', resultDetails);
+        const contentArray = Array.isArray(data.content) ? data.content : [];
+        const textBlock = contentArray.find((part) => part.type === 'text');
+
+        if (textBlock?.text) {
+            return textBlock.text;
         }
 
-        // Show final AI response
-        if (data.finalResponse) {
-            this.addMessage('assistant', data.finalResponse);
+        if (typeof data === 'string') {
+            return data;
         }
+
+        return JSON.stringify(data, null, 2);
     }
 
     addMessage(type, content) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${type}`;
-        
+
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
-        
+
         if (type === 'user') {
             contentDiv.innerHTML = `<strong>You:</strong> ${this.escapeHtml(content)}`;
         } else if (type === 'assistant') {
-            contentDiv.innerHTML = `<strong>AI Assistant:</strong> ${this.escapeHtml(content)}`;
+            contentDiv.innerHTML = `<strong>AI Assistant:</strong> ${this.formatText(content)}`;
         } else {
             contentDiv.textContent = content;
         }
-        
+
         messageDiv.appendChild(contentDiv);
         this.chatMessages.appendChild(messageDiv);
         this.scrollToBottom();
+    }
+
+    formatText(text) {
+        return this.escapeHtml(text).replace(/\n/g, '<br>');
     }
 
     showTypingIndicator() {
         const typingDiv = document.createElement('div');
         typingDiv.className = 'message assistant typing-indicator';
         typingDiv.id = 'typingIndicator';
-        
+
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
         contentDiv.innerHTML = `
@@ -137,7 +307,7 @@ ${JSON.stringify(data.functionResult, null, 2)}`;
                 <span></span>
             </div>
         `;
-        
+
         typingDiv.appendChild(contentDiv);
         this.chatMessages.appendChild(typingDiv);
         this.scrollToBottom();
@@ -153,7 +323,10 @@ ${JSON.stringify(data.functionResult, null, 2)}`;
     setLoading(loading) {
         this.sendButton.disabled = loading;
         this.userInput.disabled = loading;
-        
+        this.toolSelect.disabled = loading;
+        this.unitSelect.disabled = loading;
+        this.location2Input.disabled = loading || this.location2Wrapper.classList.contains('hidden');
+
         if (loading) {
             this.sendButton.innerHTML = '<div class="loading"></div>';
         } else {
@@ -177,7 +350,6 @@ ${JSON.stringify(data.functionResult, null, 2)}`;
     }
 }
 
-// Initialize the chat when the page loads
 document.addEventListener('DOMContentLoaded', () => {
     new WeatherChat();
 });
