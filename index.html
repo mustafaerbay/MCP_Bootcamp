@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather AI Assistant</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🌤️ Weather AI Assistant</h1>
+            <p>Ask me about the weather anywhere in the world!</p>
+        </header>
+
+        <div class="chat-container">
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant">
+                    <div class="message-content">
+                        <strong>AI Assistant:</strong> Hello! I can help you check the weather for any location. Try asking me something like "What's the weather like in Istanbul, Turkey?" or "How's the weather in New York?"
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <input type="text" id="userInput" placeholder="Ask about the weather..." autocomplete="off">
+                    <button id="sendButton" class="send-button">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22,2 15,22 11,13 2,9 22,2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="examples">
+            <h3>Try these examples:</h3>
+            <div class="example-buttons">
+                <button class="example-btn" data-query="What's the weather like in Istanbul, Turkey?">Istanbul, Turkey</button>
+                <button class="example-btn" data-query="How's the weather in New York City?">New York City</button>
+                <button class="example-btn" data-query="What's the temperature in Tokyo, Japan?">Tokyo, Japan</button>
+                <button class="example-btn" data-query="Weather forecast for London, UK">London, UK</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

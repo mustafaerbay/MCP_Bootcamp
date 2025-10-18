@@ -1,0 +1,17 @@
+{
+  "name": "mcp-model-function-calling",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Minimal example of OpenAI model function calling using the Responses API.",
+  "main": "function-calling.js",
+  "scripts": {
+    "start": "node function-calling.js",
+    "web": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "openai": "^4.56.1",
+    "express": "^4.18.2",
+    "dotenv": "^16.3.1"
+  }
+}
