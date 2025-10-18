@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "weather-server": {
+      "command": "node",
+      "args": ["mcp-server.js"],
+      "cwd": "/Users/mustafaerbay/code/MCP_Bootcamp",
+      "env": {
+        "WEATHER_API_KEY": "${WEATHER_API_KEY}"
+      }
+    }
+  }
+}

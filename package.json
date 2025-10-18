@@ -7,12 +7,19 @@
   "scripts": {
     "start": "node function-calling.js",
     "web": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "mcp": "node mcp-server.js",
+    "mcp:http": "MCP_TRANSPORT=http node mcp-server.js",
+    "mcp:simple": "node mcp-server-simple.js",
+    "test:mcp": "node test-mcp-http.js",
+    "test:mcp:stdio": "node test-mcp-stdio.js",
+    "setup:claude": "node setup-claude-config.js"
   },
   "dependencies": {
     "openai": "^4.56.1",
     "express": "^4.18.2",
     "dotenv": "^16.3.1",
-    "axios": "^1.6.0"
+    "axios": "^1.6.0",
+    "@modelcontextprotocol/sdk": "^0.5.0"
   }
 }

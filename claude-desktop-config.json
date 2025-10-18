@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "weather-server": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "/Users/mustafaerbay/code/MCP_Bootcamp/mcp-server.js"
+      ],
+      "transport": {
+        "type": "stdio"
+      },
+      "env": {
+        "WEATHER_API_KEY": "75d7417873874b2984d94227251810"
+      }
+    }
+  }
+}
