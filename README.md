@@ -98,7 +98,7 @@ This will generate the correct configuration with your current directory path.
 Use the `mcp-config.json` as a template for your MCP client configuration.
 
 ### HTTP API Endpoints
-
+MCP_PORT=3001 npx -y /Users/mustafaerbay/code/MCP_Bootcamp/mcp-server.js
 When running in HTTP mode (`npm run mcp:http`), the server provides these REST endpoints:
 
 #### **Health & Status**
